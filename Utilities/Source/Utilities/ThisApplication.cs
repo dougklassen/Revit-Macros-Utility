@@ -108,29 +108,9 @@ namespace Utilities
 		    {
 		      	t.Start();
 		      	
-				Boolean noParam = false;
 		      	foreach (var vt in viewTemplates)
 				{
-		      		//vt.Name = (prependString + vt.Name);
-					Parameter vName = vt.get_Parameter("View Name");
-					foreach (Parameter p in vt.Parameters) {
-						if ("View Name" == p.Definition.Name) {
-							vName = p;
-						}
-					}
-					
-					if (null != vName)
-					{
-						vName.Set(prependString + vName.AsString());
-					}
-					else
-					{
-						noParam = true;
-					}
-				}
-		      	
-				if (noParam) {
-				     TaskDialog.Show("message","couldn't get param");						
+		      		vt.Name = (prependString + vt.Name);
 				}
 				
 				t.Commit();
