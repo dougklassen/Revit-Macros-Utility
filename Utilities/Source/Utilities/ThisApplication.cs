@@ -91,6 +91,52 @@ namespace Utilities
 		public void createIndividualGroups()
 		{
 		}
+		public void prependViewTemplateNames()
+		{			
+			UIDocument uiDoc = this.ActiveUIDocument;
+			Document dbDoc = this.ActiveUIDocument.Document;
+			
+			String prependString = Prompt.ShowDialog("String to prepend: ", "Prepend View Template Names");
+			
+			ElementClassFilter viewFilter = new ElementClassFilter(typeof(Autodesk.Revit.DB.View));
+			FilteredElementCollector collector = new FilteredElementCollector(dbDoc);
+			IEnumerable<Autodesk.Revit.DB.View> allViews = collector.WherePasses(viewFilter).Cast<Autodesk.Revit.DB.View>().AsEnumerable();
+			
+			var viewTemplates = allViews.Where(t => t.IsTemplate);
+			
+			using(Transaction t = new Transaction(dbDoc, "Prepend View Template Names"))
+		    {
+		      	t.Start();
+		      	
+				Boolean noParam = false;
+		      	foreach (var vt in viewTemplates)
+				{
+		      		//vt.Name = (prependString + vt.Name);
+					Parameter vName = vt.get_Parameter("View Name");
+					foreach (Parameter p in vt.Parameters) {
+						if ("View Name" == p.Definition.Name) {
+							vName = p;
+						}
+					}
+					
+					if (null != vName)
+					{
+						vName.Set(prependString + vName.AsString());
+					}
+					else
+					{
+						noParam = true;
+					}
+				}
+		      	
+				if (noParam) {
+				     TaskDialog.Show("message","couldn't get param");						
+				}
+				
+				t.Commit();
+	        }
+		}
+		
 	}
 	
 	public static class Prompt
