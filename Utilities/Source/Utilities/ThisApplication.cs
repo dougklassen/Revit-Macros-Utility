@@ -20,9 +20,16 @@ namespace Utilities
     [Autodesk.Revit.DB.Macros.AddInId("7DDD5D8D-869B-4F8C-A991-38934DBD15C4")]
 	public partial class ThisApplication
 	{
+		UIDocument uiDoc;
+		Document dbDoc;
+		UIApplication uiApp;
+		
+		
 		private void Module_Startup(object sender, EventArgs e)
 		{
-
+			uiDoc = this.ActiveUIDocument;
+			dbDoc = this.ActiveUIDocument.Document;
+			uiApp = this.ActiveUIDocument.Application;
 		}
 
 		private void Module_Shutdown(object sender, EventArgs e)
@@ -88,9 +95,7 @@ namespace Utilities
 		      	t.Commit();
 	      	}
 		}
-		public void createIndividualGroups()
-		{
-		}
+		
 		public void prependViewTemplateNames()
 		{			
 			UIDocument uiDoc = this.ActiveUIDocument;
@@ -117,6 +122,60 @@ namespace Utilities
 	        }
 		}
 		
+		public void HideConsultantDatums()
+		{
+			using(Transaction t = new Transaction(dbDoc, "Hide datums in linked models"))
+			{
+				t.Start();
+				
+				String msg = String.Empty;
+				
+				//var views = new FilteredElementCollector(dbDoc).OfCategory(BuiltInCategory.OST_Views);
+				List<Autodesk.Revit.DB.View> views = new List<Autodesk.Revit.DB.View>();
+				views.Add(dbDoc.ActiveView);
+				
+				foreach(Document loadedDoc in uiApp.Application.Documents)
+				{
+					if(String.Empty != loadedDoc.PathName)
+					{
+						if(loadedDoc.IsLinked) msg += "*LINK*";
+						msg += loadedDoc.PathName;
+					}
+					else
+					{
+						msg += "*EMPTY*";
+					}
+					msg += "\n------------\n";
+
+					foreach (var v in views)
+					{
+						Int32 numGrids = 0;
+						if(!v.IsTemplate)
+						{
+							var gridsInView = new FilteredElementCollector(loadedDoc).OfCategory(BuiltInCategory.OST_Grids);
+
+							ICollection<ElementId> elementsToHide = new List<ElementId>();
+							foreach(Element g in gridsInView)
+							{
+								if(g.CanBeHidden(v))
+								{
+									elementsToHide.Add(g.Id);
+									numGrids++;
+								}
+							}
+							if(elementsToHide.Count() > 0)
+							{
+								//v.HideElements(elementsToHide);
+							}
+						}
+						msg += "Grids in " + v.Name + ": " + numGrids + "\n";
+					}
+				}
+				
+				TaskDialog.Show("Linked Views", msg);
+				t.Commit();
+			}
+		}
 	}
 	
 	public static class Prompt
