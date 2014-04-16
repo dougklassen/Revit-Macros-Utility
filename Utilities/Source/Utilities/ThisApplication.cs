@@ -134,28 +134,20 @@ namespace Utilities
 				List<Autodesk.Revit.DB.View> views = new List<Autodesk.Revit.DB.View>();
 				views.Add(dbDoc.ActiveView);
 				
-				foreach(Document loadedDoc in uiApp.Application.Documents)
+				//IEnumerable<Document> linkedDocs = uiApp.Application.Documents.GetEnumerable().Where(d => d.IsLinked);
+				IEnumerable<Document> linkedDocs = uiApp.Application.Documents.GetEnumerable();
+				
+				foreach (var v in views)
 				{
-					if(String.Empty != loadedDoc.PathName)
+					Int32 numGrids = 0;
+					if(!v.IsTemplate)
 					{
-						if(loadedDoc.IsLinked) msg += "*LINK*";
-						msg += loadedDoc.PathName;
-					}
-					else
-					{
-						msg += "*EMPTY*";
-					}
-					msg += "\n------------\n";
-
-					foreach (var v in views)
-					{
-						Int32 numGrids = 0;
-						if(!v.IsTemplate)
+						foreach(Document loadedDoc in linkedDocs)
 						{
-							var gridsInView = new FilteredElementCollector(loadedDoc).OfCategory(BuiltInCategory.OST_Grids);
+							var gridsInDoc = new FilteredElementCollector(loadedDoc).OfCategory(BuiltInCategory.OST_Grids);
 
 							ICollection<ElementId> elementsToHide = new List<ElementId>();
-							foreach(Element g in gridsInView)
+							foreach(Element g in gridsInDoc)
 							{
 								if(g.CanBeHidden(v))
 								{
@@ -165,10 +157,14 @@ namespace Utilities
 							}
 							if(elementsToHide.Count() > 0)
 							{
-								//v.HideElements(elementsToHide);
+								
+								v.HideElements(elementsToHide);
 							}
+							
+							msg += "*LINK*\n" + loadedDoc.PathName + "\n";
+							msg += "Grids in " + v.Name + ": " + numGrids + "\n-------------------\n";
+							numGrids = 0;
 						}
-						msg += "Grids in " + v.Name + ": " + numGrids + "\n";
 					}
 				}
 				
@@ -196,5 +192,27 @@ namespace Utilities
 	        prompt.ShowDialog();
 	        return textBox.Text;
 	    }
+	}
+	
+	public static class RevitCollectionUtils
+	{
+		/// <summary>
+		/// Return a document set as an IEnumerable by building a list
+		/// </summary>
+		/// <param name="ds">the document set source</param>
+		/// <returns>an IEnumerable for the DocumentSet</returns>
+		public static IEnumerable<Document> GetEnumerable(this DocumentSet ds)
+		{
+			List<Document> docSetEnum = new List<Document>();
+			DocumentSetIterator iter = ds.ForwardIterator();
+			
+			while(iter.MoveNext())
+			{
+				docSetEnum.Add((Document)iter.Current);
+			}
+			
+			return docSetEnum;
+		}
+			
 	}
 }
